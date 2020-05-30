@@ -26,6 +26,6 @@ app.use('/api/fd', authToken, fdRoutes);
 app.use('/api/person', authToken, personRoutes);
 app.use('/api/heir', authToken, heirRoutes);
 
-app.listen(5000, () => {
+app.listen(process.env.PORT, () => {
   init();
 });
