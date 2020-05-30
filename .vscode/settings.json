@@ -1,0 +1,8 @@
+{
+  "appService.zipIgnorePattern": [
+    "node_modules{,/**}",
+    ".vscode{,/**}"
+  ],
+  "appService.defaultWebAppToDeploy": "/subscriptions/5cb37c3d-0798-4fb6-8905-3dd18016783c/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/azure-hackathon",
+  "appService.deploySubpath": "."
+}
