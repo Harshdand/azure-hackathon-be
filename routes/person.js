@@ -6,6 +6,7 @@ const router = express.Router();
 const { getDb } = require('../db');
 const { personResponseFields } = require('../constants/person');
 const { searchPersonQuery, getUserQuery } = require('../queries/person');
+const { sendNewUserEmail } = require('../utils/email');
 
 router.post('/', async (req, res) => {
   const db = getDb();
@@ -36,6 +37,18 @@ router.post('/', async (req, res) => {
     });
     resp.success = true;
     resp.data = data;
+
+    try {
+      await sendNewUserEmail({
+        firstName: data.firstName,
+        middleName: data.middleName,
+        lastName: data.lastName,
+        email: data.email,
+        password,
+      });
+    } catch (error) {
+      console.log(error);
+    }
   } else {
     resp.success = false;
     resp.message = 'Unable to add user';
