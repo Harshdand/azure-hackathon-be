@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 const { getDb } = require('../db');
+const { loginQuery } = require('../queries/auth');
 
 router.post('/login', async (req, res) => {
   const db = getDb();
@@ -11,7 +12,7 @@ router.post('/login', async (req, res) => {
   const { email, password: pswd, category } = req.body;
 
   const querySpec = {
-    query: `SELECT * from c WHERE c.email="${email}" AND c.category="${category}"`,
+    query: loginQuery(email, category),
   };
 
   const { resources = [] } = await container.items.query(querySpec).fetchAll();
