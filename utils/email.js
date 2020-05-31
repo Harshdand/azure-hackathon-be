@@ -15,4 +15,25 @@ const sendNewUserEmail = async (payload) => {
   return await sgMail.send(msg);
 };
 
-module.exports = { sendNewUserEmail };
+const triggerClaimEmails = async (messages) => {
+  const promises = [];
+
+  messages.forEach(async (item) => {
+    const { heir = {}, user = {}, assetId, type } = item;
+    const { firstName, middleName, lastName, percentage } = heir;
+    const { firstName: uFirstName, lastName: uLastName } = user;
+
+    const msg = {
+      to: heir.email,
+      from: process.env.FROM_EMAIL,
+      subject: 'Assets to be claimed',
+      html: `Hi ${firstName} ${middleName} ${lastName}, <br/><br/> ${uFirstName} ${uLastName} has declared you as legal heir for the below assets which can be claimed.<br/><br/>  <b>Asset Type:</b> ${type}  <br/> <b>Asset ID:</b> ${assetId}  <br/> <b>Percentage :</b> ${percentage}%`,
+    };
+
+    promises.push(await sgMail.send(msg));
+  });
+
+  return Promise.all(promises);
+};
+
+module.exports = { sendNewUserEmail, triggerClaimEmails };

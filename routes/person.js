@@ -5,8 +5,12 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 const { getDb } = require('../db');
 const { personResponseFields } = require('../constants/person');
-const { searchPersonQuery, getUserQuery } = require('../queries/person');
-const { sendNewUserEmail } = require('../utils/email');
+const {
+  searchPersonQuery,
+  getUserQuery,
+  getAssetsQuery,
+} = require('../queries/person');
+const { sendNewUserEmail, triggerClaimEmails } = require('../utils/email');
 
 router.post('/', async (req, res) => {
   const db = getDb();
@@ -60,10 +64,10 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   const db = getDb();
   const container = db.container('person');
-  const { aadhaar, pan } = req.query;
+  const { aadhaar, pan, id } = req.query;
 
   const querySpec = {
-    query: searchPersonQuery(aadhaar, pan),
+    query: searchPersonQuery(aadhaar, pan, id),
   };
 
   const { resources: items } = await container.items
@@ -85,6 +89,7 @@ router.get('/', async (req, res) => {
 router.post('/death', async (req, res) => {
   const db = getDb();
   const container = db.container('person');
+  const assetContainer = db.container('asset');
   const { id, dod } = req.body;
 
   const querySpec = {
@@ -96,11 +101,49 @@ router.post('/death', async (req, res) => {
     .fetchAll();
 
   if (items && items[0]) {
+    const { firstName, lastName } = items[0];
+
     const { resource } = await container
       .item(items[0].id)
       .replace({ ...items[0], isAlive: false, deathDetails: { dod } });
 
-    res.send({ success: true });
+    const { assets = [] } = items[0];
+
+    console.log(getAssetsQuery(id));
+    if (assets.length) {
+      const getAssetsQuerySpec = {
+        query: getAssetsQuery(id),
+      };
+
+      const { resources: assetItems } = await assetContainer.items
+        .query(getAssetsQuerySpec)
+        .fetchAll();
+
+      console.log(assetItems);
+
+      if (assetItems && assetItems.length) {
+        const messages = [];
+
+        assetItems.forEach((asset) => {
+          const { heirs = [], type, assetId } = asset;
+
+          heirs.forEach((heir) => {
+            messages.push({
+              heir,
+              type,
+              assetId,
+              user: { firstName, lastName },
+            });
+          });
+        });
+
+        const emailResp = await triggerClaimEmails(messages);
+        console.log(emailResp);
+        res.send({ success: true });
+      }
+    } else {
+      res.send({ success: true });
+    }
   } else {
     res
       .status(500)
